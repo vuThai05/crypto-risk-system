@@ -71,7 +71,7 @@ async def _request_json(method: str, url: str, **kwargs: Any) -> Any:
                         error=str(e),
                     )
                     raise
-                if 400 <= status_code < 500 and status_code != 429:
+                elif 400 <= status_code < 500 and status_code != 429:
                     logger.error(
                         "coingecko_request_client_failed",
                         url=url,

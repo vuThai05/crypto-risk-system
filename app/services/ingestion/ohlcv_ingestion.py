@@ -67,12 +67,6 @@ async def run_ohlcv_ingestion(*, session: Session, days: float | str = 90) -> di
             if isinstance(exc, httpx.HTTPStatusError):
                 status_code = exc.response.status_code
                 if status_code in {401, 403}:
-                    logger.error(
-                        "ohlcv_auth_failed",
-                        coingecko_id=coin.coingecko_id,
-                        status_code=status_code,
-                        error=str(exc),
-                    )
                     raise
                 logger.exception(
                     "ohlcv_chart_failed",
