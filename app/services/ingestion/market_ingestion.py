@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import structlog
@@ -22,8 +22,10 @@ async def run_market_ingestion(*, session: Session) -> dict[str, int | str]:
     Rows that reference unknown ``coingecko_id`` are skipped.
     """
     await _ensure_coins(session)
+    # Avoid holding an idle DB connection while waiting on CoinGecko.
+    session.rollback()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     raw = await fetch_top_coins(per_page=100)
     cg_to_coin = {
         c.coingecko_id: c.id for c in coin_repository.list_coins(session=session, limit=200)
