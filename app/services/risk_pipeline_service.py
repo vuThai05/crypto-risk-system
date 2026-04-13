@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import structlog
@@ -12,7 +12,13 @@ from app.core.config import settings
 from app.models.feature_metric import FeatureMetric
 from app.models.market_aggregate import MarketAggregate
 from app.models.risk_metric import RiskMetric
-from app.repositories import aggregate_repository, coin_repository, feature_repository, market_snapshot_repository, risk_repository
+from app.repositories import (
+    aggregate_repository,
+    coin_repository,
+    feature_repository,
+    market_snapshot_repository,
+    risk_repository,
+)
 from app.services.feature_engineering.feature_service import compute_features
 from app.services.ingestion.coingecko_client import fetch_global_market
 from app.services.risk_engine.risk_config import compute_config_hash, get_risk_weights
@@ -31,7 +37,7 @@ async def run_risk_pipeline(*, session: Session) -> dict[str, int]:
     weights = get_risk_weights()
     config_hash = compute_config_hash(weights)
     model_ver = settings.RISK_MODEL_VERSION
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     since_7d = market_snapshot_repository.window_start_utc(days=7)
     since_30d = market_snapshot_repository.window_start_utc(days=30)
 
@@ -107,9 +113,6 @@ async def run_risk_pipeline(*, session: Session) -> dict[str, int]:
                 )
             )
 
-    feature_repository.save_features(session=session, rows=feature_rows)
-    risk_repository.save_risk_metrics(session=session, metrics=risk_rows)
-
     if risk_rows:
         scores = [float(m.risk_score) for m in risk_rows]
         avg_r = sum(scores) / len(scores)
@@ -139,6 +142,9 @@ async def run_risk_pipeline(*, session: Session) -> dict[str, int]:
             btc_dom = Decimal(str(mcp["btc"]))
     except Exception:
         logger.exception("risk_pipeline_global_fetch_failed")
+
+    feature_repository.save_features(session=session, rows=feature_rows)
+    risk_repository.save_risk_metrics(session=session, metrics=risk_rows)
 
     agg = MarketAggregate(
         avg_risk_score=Decimal(str(round(avg_r, 4))),

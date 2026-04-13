@@ -18,8 +18,9 @@ async def ensure_top_coins_loaded(*, session: Session) -> dict[str, int | bool]:
     Per spec, metadata is not refreshed on a daily schedule; call this at worker
     startup (and ingestion uses this when the table is empty).
     """
-    if coin_repository.count_coins(session=session) > 0:
-        return {"bootstrapped": False, "coins": coin_repository.count_coins(session=session)}
+    existing = coin_repository.count_coins(session=session)
+    if existing > 0:
+        return {"bootstrapped": False, "coins": existing}
 
     # Release any checked-out connection before waiting on external API I/O.
     session.close()

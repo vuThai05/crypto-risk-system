@@ -25,6 +25,7 @@ async def run_full_ingestion_cycle(*, session: Session) -> dict:
         logger.exception("ingestion_cycle_stage_failed", stage="market_ingestion")
         raise
     logger.info("ingestion_cycle_stage_complete", stage="market_ingestion")
+    session.close()
 
     logger.info("ingestion_cycle_stage_start", stage="risk_pipeline")
     try:

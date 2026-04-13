@@ -10,21 +10,34 @@ from time import sleep
 import structlog
 from sqlalchemy import text
 from sqlalchemy.exc import InterfaceError, OperationalError
+from sqlalchemy.pool import NullPool
 from sqlmodel import Session, create_engine
 
 from app.core.config import settings
 
 logger = structlog.get_logger()
 
-engine = create_engine(
-    str(settings.SQLALCHEMY_DATABASE_URI),
-    echo=False,
-    connect_args={"connect_timeout": 15},
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_recycle=300,
-)
+_common_engine_kwargs = {
+    "echo": False,
+    "connect_args": {"connect_timeout": 15},
+    "pool_pre_ping": True,
+}
+
+if settings.POSTGRES_PORT == 6543:
+    # Supabase transaction pooler works best with no client-side pooling.
+    engine = create_engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        poolclass=NullPool,
+        **_common_engine_kwargs,
+    )
+else:
+    engine = create_engine(
+        str(settings.SQLALCHEMY_DATABASE_URI),
+        pool_size=10,
+        max_overflow=20,
+        pool_recycle=300,
+        **_common_engine_kwargs,
+    )
 
 
 def init_db() -> None:

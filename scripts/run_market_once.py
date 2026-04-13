@@ -20,7 +20,6 @@ from sqlmodel import Session
 from app.core.config import settings
 from app.core.db import engine, init_db_if_enabled, wait_for_db_connection
 from app.services.ingestion.ingestion_service import run_full_ingestion_cycle
-from app.services.ingestion.metadata_loader import ensure_top_coins_loaded
 from app.utils.logging import setup_logging
 
 logger = structlog.get_logger()
@@ -34,10 +33,6 @@ async def main() -> None:
     logger.info("oneshot_market_start")
     wait_for_db_connection()
     init_db_if_enabled()
-
-    with Session(engine) as session:
-        await ensure_top_coins_loaded(session=session)
-        session.commit()
 
     with Session(engine) as session:
         result = await run_full_ingestion_cycle(session=session)
