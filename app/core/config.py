@@ -59,9 +59,13 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = "crypto_risk"
 
+    POSTGRES_SSL_MODE: str = "require"
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
+        # Nếu connect local thì thường chuyển POSTGRES_SSL_MODE về "disable" hoặc "prefer"
+        query = f"sslmode={self.POSTGRES_SSL_MODE}" if self.POSTGRES_SSL_MODE else None
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
@@ -69,6 +73,7 @@ class Settings(BaseSettings):
             host=self.POSTGRES_SERVER,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
+            query=query,
         )
 
     # ── CoinGecko ──────────────────────────────────────────────────────────
