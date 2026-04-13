@@ -28,6 +28,32 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
 
+      - name: Validate database secrets
+        env:
+          POSTGRES_SERVER: ${{ secrets.POSTGRES_SERVER }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+
+          required = [
+              "POSTGRES_SERVER",
+              "POSTGRES_PORT",
+              "POSTGRES_USER",
+              "POSTGRES_PASSWORD",
+              "POSTGRES_DB",
+          ]
+          missing = [key for key in required if not (os.getenv(key) or "").strip()]
+          if missing:
+              print("Missing required database secrets:", ", ".join(missing))
+              sys.exit(1)
+          print("Database secrets validation passed")
+          PY
+
       - name: Run OHLCV ingestion (one-shot)
         env:
           POSTGRES_SERVER: ${{ secrets.POSTGRES_SERVER }}
@@ -35,6 +61,7 @@ jobs:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_SSL_MODE: "require"
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
           COINGECKO_MAX_REQUESTS_PER_MINUTE: "25"
           AUTO_CREATE_TABLES: "false"

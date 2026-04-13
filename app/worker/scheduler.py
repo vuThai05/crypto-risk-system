@@ -11,7 +11,7 @@ import structlog
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.core.db import engine, init_db_if_enabled
+from app.core.db import engine, init_db_if_enabled, wait_for_db_connection
 from app.services.ingestion.backfill_service import run_weekly_backfill
 from app.services.ingestion.ingestion_service import run_full_ingestion_cycle
 from app.services.ingestion.metadata_loader import ensure_top_coins_loaded
@@ -66,6 +66,7 @@ async def run_worker() -> None:
         log_level="DEBUG" if settings.ENVIRONMENT == "local" else "INFO",
         json_output=settings.ENVIRONMENT != "local",
     )
+    wait_for_db_connection()
     init_db_if_enabled()
     with Session(engine) as session:
         await ensure_top_coins_loaded(session=session)

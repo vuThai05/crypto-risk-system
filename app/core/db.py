@@ -5,8 +5,12 @@ Follows the pattern from full-stack-fastapi-template/backend/app/core/db.py.
 
 from __future__ import annotations
 
-from sqlmodel import Session, create_engine
+from time import sleep
+
 import structlog
+from sqlalchemy import text
+from sqlalchemy.exc import InterfaceError, OperationalError
+from sqlmodel import Session, create_engine
 
 from app.core.config import settings
 
@@ -15,10 +19,11 @@ logger = structlog.get_logger()
 engine = create_engine(
     str(settings.SQLALCHEMY_DATABASE_URI),
     echo=False,
-    connect_args={"sslmode": "require"},
+    connect_args={"connect_timeout": 15},
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    pool_recycle=300,
 )
 
 
@@ -46,6 +51,42 @@ def init_db_if_enabled() -> None:
         return
     logger.warning("db_auto_create_enabled", auto_create_tables=True)
     init_db()
+
+
+def wait_for_db_connection(*, attempts: int = 3, delay_seconds: float = 2.0) -> None:
+    """Verify DB connectivity before jobs start mutating data.
+
+    GitHub Actions jobs can occasionally hit transient pooler/SSL EOF errors on
+    the first checkout. A short preflight retry keeps those from failing a whole
+    scheduled run while still surfacing persistent secret/config issues.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+            if attempt > 1:
+                logger.info("db_connection_ready", attempt=attempt)
+            return
+        except (InterfaceError, OperationalError) as exc:
+            engine.dispose()
+            if attempt >= attempts:
+                logger.error(
+                    "db_connection_check_failed",
+                    attempt=attempt,
+                    attempts=attempts,
+                    error=str(exc),
+                )
+                raise
+
+            wait_seconds = delay_seconds * attempt
+            logger.warning(
+                "db_connection_check_retry",
+                attempt=attempt,
+                attempts=attempts,
+                wait_seconds=wait_seconds,
+                error=str(exc),
+            )
+            sleep(wait_seconds)
 
 
 def get_session():

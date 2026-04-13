@@ -11,14 +11,13 @@ import asyncio
 import sys
 
 import structlog
+from sqlmodel import Session
 
 from app.core.config import settings
-from app.core.db import engine, init_db_if_enabled
+from app.core.db import engine, init_db_if_enabled, wait_for_db_connection
 from app.services.ingestion.backfill_service import run_weekly_backfill
 from app.services.ingestion.metadata_loader import ensure_top_coins_loaded
 from app.utils.logging import setup_logging
-
-from sqlmodel import Session
 
 logger = structlog.get_logger()
 
@@ -28,9 +27,9 @@ async def main() -> None:
         log_level="INFO",
         json_output=settings.ENVIRONMENT != "local",
     )
-    init_db_if_enabled()
-
     logger.info("oneshot_backfill_start")
+    wait_for_db_connection()
+    init_db_if_enabled()
 
     with Session(engine) as session:
         await ensure_top_coins_loaded(session=session)
@@ -47,5 +46,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except Exception as exc:
-        print(f"❌ FAILED: {exc}", file=sys.stderr)
+        logger.exception("oneshot_backfill_failed")
+        print(f"FAILED: {exc}", file=sys.stderr)
         sys.exit(1)
