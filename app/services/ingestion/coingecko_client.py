@@ -72,7 +72,7 @@ async def _request_json(method: str, url: str, **kwargs: Any) -> Any:
                     )
                     raise
                 # Retry 429 (rate-limited), fail fast for other non-auth 4xx.
-                elif 400 <= status_code < 500 and status_code != 429:
+                elif 400 <= status_code < 500 and status_code not in {401, 403, 429}:
                     logger.error(
                         "coingecko_request_client_failed",
                         url=url,

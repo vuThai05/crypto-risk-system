@@ -67,7 +67,12 @@ async def run_ohlcv_ingestion(*, session: Session, days: float | str = 90) -> di
             if isinstance(exc, httpx.HTTPStatusError):
                 if exc.response.status_code in {401, 403}:
                     raise
-                # HTTP errors are already logged in the client; skip this coin.
+                # HTTP errors are already logged in the client; add coin context and skip.
+                logger.warning(
+                    "ohlcv_chart_http_skipped",
+                    coingecko_id=coin.coingecko_id,
+                    status_code=exc.response.status_code,
+                )
                 continue
             logger.exception("ohlcv_chart_failed", coingecko_id=coin.coingecko_id)
             continue
