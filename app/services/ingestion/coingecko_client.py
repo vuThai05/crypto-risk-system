@@ -60,7 +60,36 @@ async def _request_json(method: str, url: str, **kwargs: Any) -> Any:
                 response = await client.request(method, url, headers=_build_headers(), **kwargs)
                 response.raise_for_status()
                 return response.json()
-            except (httpx.HTTPError, httpx.TimeoutException) as e:
+            except httpx.HTTPStatusError as e:
+                status_code = e.response.status_code
+                # Auth / non-retryable client errors should fail fast.
+                if status_code in {401, 403}:
+                    logger.error(
+                        "coingecko_request_auth_failed",
+                        url=url,
+                        status_code=status_code,
+                        error=str(e),
+                    )
+                    raise
+                if 400 <= status_code < 500 and status_code != 429:
+                    logger.error(
+                        "coingecko_request_client_failed",
+                        url=url,
+                        status_code=status_code,
+                        error=str(e),
+                    )
+                    raise
+                last_exc = e
+                wait_s = 2**attempt
+                logger.warning(
+                    "coingecko_request_retry",
+                    url=url,
+                    attempt=attempt + 1,
+                    wait_s=wait_s,
+                    error=str(e),
+                )
+                await asyncio.sleep(wait_s)
+            except (httpx.RequestError, httpx.TimeoutException) as e:
                 last_exc = e
                 wait_s = 2**attempt
                 logger.warning(
