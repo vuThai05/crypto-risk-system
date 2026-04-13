@@ -90,7 +90,7 @@ async def _request_json(method: str, url: str, **kwargs: Any) -> Any:
                     error=str(e),
                 )
                 await asyncio.sleep(wait_s)
-            except (httpx.RequestError, httpx.TimeoutException) as e:
+            except httpx.HTTPError as e:
                 last_exc = e
                 wait_s = 2**attempt
                 logger.warning(
