@@ -80,6 +80,7 @@ async def _request_json(method: str, url: str, **kwargs: Any) -> Any:
                         error=str(e),
                     )
                     raise
+                # Retryable HTTP statuses (e.g. 429/5xx) continue below with backoff.
                 last_exc = e
                 wait_s = 2**attempt
                 logger.warning(

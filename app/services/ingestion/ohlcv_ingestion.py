@@ -63,17 +63,12 @@ async def run_ohlcv_ingestion(*, session: Session, days: float | str = 90) -> di
     for coin in coins:
         try:
             chart = await fetch_market_chart(coin.coingecko_id, days=days)
-        except httpx.HTTPStatusError as exc:
-            status_code = exc.response.status_code
-            if status_code in {401, 403}:
-                raise
-            logger.exception(
-                "ohlcv_chart_failed",
-                coingecko_id=coin.coingecko_id,
-                status_code=status_code,
-            )
-            continue
-        except Exception:
+        except Exception as exc:
+            if isinstance(exc, httpx.HTTPStatusError):
+                if exc.response.status_code in {401, 403}:
+                    raise
+                # HTTP errors are already logged in the client; skip this coin.
+                continue
             logger.exception("ohlcv_chart_failed", coingecko_id=coin.coingecko_id)
             continue
 
