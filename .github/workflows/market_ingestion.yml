@@ -1,0 +1,43 @@
+name: Market Ingestion (every 15 min)
+
+on:
+  schedule:
+    # Mỗi 15 phút, bắt đầu từ phút 0
+    # Lưu ý: GitHub Actions cron dùng múi giờ UTC
+    - cron: "*/15 * * * *"
+
+  # Cho phép chạy thủ công từ tab Actions trên GitHub
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    name: Market Ingestion + Risk Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run market ingestion (one-shot)
+        env:
+          POSTGRES_SERVER: ${{ secrets.POSTGRES_SERVER }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
+          COINGECKO_MAX_REQUESTS_PER_MINUTE: "25"
+          AUTO_CREATE_TABLES: "false"
+          ENVIRONMENT: "production"
+          RISK_MODEL_VERSION: "1.0.0"
+        run: python scripts/run_market_once.py
