@@ -14,9 +14,26 @@ logger = structlog.get_logger()
 
 async def run_full_ingestion_cycle(*, session: Session) -> dict:
     """Bootstrap coins if needed, ingest market snapshots, compute risk + aggregates."""
+    logger.info("ingestion_cycle_stage_start", stage="ensure_top_coins_loaded")
     await ensure_top_coins_loaded(session=session)
-    m = await run_market_ingestion(session=session)
-    r = await run_risk_pipeline(session=session)
+    logger.info("ingestion_cycle_stage_complete", stage="ensure_top_coins_loaded")
+
+    logger.info("ingestion_cycle_stage_start", stage="market_ingestion")
+    try:
+        m = await run_market_ingestion(session=session)
+    except Exception:
+        logger.exception("ingestion_cycle_stage_failed", stage="market_ingestion")
+        raise
+    logger.info("ingestion_cycle_stage_complete", stage="market_ingestion")
+
+    logger.info("ingestion_cycle_stage_start", stage="risk_pipeline")
+    try:
+        r = await run_risk_pipeline(session=session)
+    except Exception:
+        logger.exception("ingestion_cycle_stage_failed", stage="risk_pipeline")
+        raise
+    logger.info("ingestion_cycle_stage_complete", stage="risk_pipeline")
+
     return {**{k: v for k, v in m.items()}, **r}
 
 
