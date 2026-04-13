@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import httpx
 import structlog
 from sqlalchemy.exc import OperationalError
 from sqlmodel import Session
@@ -62,7 +63,17 @@ async def run_ohlcv_ingestion(*, session: Session, days: float | str = 90) -> di
     for coin in coins:
         try:
             chart = await fetch_market_chart(coin.coingecko_id, days=days)
-        except Exception:
+        except Exception as exc:
+            if isinstance(exc, httpx.HTTPStatusError):
+                if exc.response.status_code in {401, 403}:
+                    raise
+                # HTTP errors are already logged in the client; add coin context and skip.
+                logger.warning(
+                    "ohlcv_chart_http_skipped",
+                    coingecko_id=coin.coingecko_id,
+                    status_code=exc.response.status_code,
+                )
+                continue
             logger.exception("ohlcv_chart_failed", coingecko_id=coin.coingecko_id)
             continue
 
