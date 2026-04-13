@@ -22,8 +22,8 @@ async def run_market_ingestion(*, session: Session) -> dict[str, int | str]:
     Rows that reference unknown ``coingecko_id`` are skipped.
     """
     await _ensure_coins(session)
-    # Avoid holding an idle DB connection while waiting on CoinGecko.
-    session.rollback()
+    # Release any checked-out connection before waiting on external API I/O.
+    session.close()
 
     now = datetime.now(UTC)
     raw = await fetch_top_coins(per_page=100)

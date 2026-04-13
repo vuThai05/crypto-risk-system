@@ -21,8 +21,8 @@ async def ensure_top_coins_loaded(*, session: Session) -> dict[str, int | bool]:
     if coin_repository.count_coins(session=session) > 0:
         return {"bootstrapped": False, "coins": coin_repository.count_coins(session=session)}
 
-    # End read transaction before awaiting network I/O.
-    session.rollback()
+    # Release any checked-out connection before waiting on external API I/O.
+    session.close()
     raw = await fetch_top_coins(per_page=100)
     valid = []
     for row in raw:

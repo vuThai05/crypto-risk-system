@@ -17,8 +17,6 @@ async def run_full_ingestion_cycle(*, session: Session) -> dict:
     logger.info("ingestion_cycle_stage_start", stage="ensure_top_coins_loaded")
     await ensure_top_coins_loaded(session=session)
     logger.info("ingestion_cycle_stage_complete", stage="ensure_top_coins_loaded")
-    # Release any read transaction before awaiting external API calls.
-    session.rollback()
 
     logger.info("ingestion_cycle_stage_start", stage="market_ingestion")
     try:
