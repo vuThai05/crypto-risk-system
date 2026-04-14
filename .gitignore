@@ -3,4 +3,7 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.pyc
+*.pyo
+*.pyd
 .pytest_cache/
