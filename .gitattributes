@@ -40,3 +40,10 @@ yarn.lock text eol=lf
 *.ttf binary
 *.eot binary
 *.pdf binary
+
+# Additional binaries / build outputs
+*.mp4 binary
+*.zip binary
+.next/** binary
+build/** binary
+dist/** binary
