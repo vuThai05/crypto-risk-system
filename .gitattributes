@@ -1,6 +1,9 @@
-# Recommended .gitattributes
+# Auto-detect text files
 * text=auto
+
+# Force LF for source files and common text
 *.py text eol=lf
+*.pyi text eol=lf
 *.ts text eol=lf
 *.tsx text eol=lf
 *.js text eol=lf
@@ -8,7 +11,32 @@
 *.json text eol=lf
 *.md text eol=lf
 *.html text eol=lf
-# binary files (keep as-is)
+*.css text eol=lf
+*.scss text eol=lf
+*.svg text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.lock text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Node lockfiles / package files
+package-lock.json text eol=lf
+yarn.lock text eol=lf
+
+# Binary files (keep as-is)
 *.png binary
 *.jpg binary
+*.jpeg binary
 *.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
