@@ -19,9 +19,22 @@ export type RiskMetricPublic = {
   computed_at: string;
 };
 
+export type MarketSnapshotPublic = {
+  id: string;
+  coin_id: string;
+  price_usd: string | number;
+  market_cap: string | number | null;
+  volume_24h: string | number | null;
+  percent_change_1h: string | number | null;
+  percent_change_24h: string | number | null;
+  percent_change_7d: string | number | null;
+  timestamp: string;
+};
+
 export type RiskyAsset = {
   coin: CoinPublic;
   risk: RiskMetricPublic;
+  snapshot?: MarketSnapshotPublic | null;
 };
 
 export type MarketAggregate = {

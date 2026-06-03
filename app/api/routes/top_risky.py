@@ -7,7 +7,8 @@ from fastapi import APIRouter, Query
 from app.api.deps import SessionDep
 from app.models.coin import CoinPublic
 from app.models.risk_metric import RiskMetricPublic
-from app.repositories import coin_repository, risk_repository
+from app.models.market_snapshot import MarketSnapshotPublic
+from app.repositories import coin_repository, risk_repository, market_snapshot_repository
 from sqlmodel import SQLModel
 
 router = APIRouter(tags=["risk"])
@@ -18,6 +19,7 @@ class RiskyAsset(SQLModel):
 
     coin: CoinPublic
     risk: RiskMetricPublic
+    snapshot: MarketSnapshotPublic | None = None
 
 
 @router.get("/top-risky-assets", response_model=list[RiskyAsset])
@@ -27,7 +29,7 @@ def get_top_risky_assets(
 ) -> list[RiskyAsset]:
     """Return the top N coins with the highest risk scores.
 
-    Each result includes coin metadata and the latest risk metric.
+    Each result includes coin metadata, latest risk metric, and latest snapshot price/volume.
     """
     metrics = risk_repository.get_top_risky_assets(session=session, limit=limit)
 
@@ -35,10 +37,13 @@ def get_top_risky_assets(
     for metric in metrics:
         coin = coin_repository.get_coin_by_id(session=session, coin_id=metric.coin_id)
         if coin:
+            tick = market_snapshot_repository.get_latest_tick(session=session, coin_id=coin.id)
+            snapshot_public = MarketSnapshotPublic.model_validate(tick) if tick else None
             results.append(
                 RiskyAsset(
                     coin=CoinPublic.model_validate(coin),
                     risk=RiskMetricPublic.model_validate(metric),
+                    snapshot=snapshot_public,
                 )
             )
 
