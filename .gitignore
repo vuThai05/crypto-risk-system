@@ -1,2 +1,13 @@
 
 .env
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.log
+*.tsbuildinfo
+*.egg-info/
+frontend/.next/
+frontend/node_modules/
+frontend_v2/.next/
+frontend_v2/node_modules/
